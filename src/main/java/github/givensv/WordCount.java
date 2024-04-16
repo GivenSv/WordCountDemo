@@ -54,8 +54,21 @@ public class WordCount {
 
     }
 
+    public static class MyMapper2 extends Mapper<Object, Text, Text, IntWritable>{
+        private final static IntWritable one = new IntWritable(1);
+
+        private Text word = new Text("The num of words:");
+
+        public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+            context.write(word, one);
+        }
+
+
+    }
+
     public static void main(String @NotNull [] args) throws IOException, InterruptedException, ClassNotFoundException {
         Configuration configuration = new Configuration();
+
         Job job  = Job.getInstance(configuration, "word count");
         job.setJarByClass(WordCount.class);
         job.setMapperClass(MyMapper.class);
@@ -66,7 +79,19 @@ public class WordCount {
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
         FileSystem fileSystem = FileSystem.get(configuration);
         fileSystem.delete(new Path(args[1]), true);
-        boolean result = job.waitForCompletion(true);
+        job.waitForCompletion(true);
+
+        Job job2 = Job.getInstance(configuration, "word count-2");
+        job.setJarByClass(WordCount.class);
+        job2.setMapperClass(WordCount.MyMapper2.class);
+        job2.setReducerClass(WordCount.MyReducer.class);
+        job2.setOutputKeyClass(Text.class);
+        job2.setOutputValueClass(IntWritable.class);
+        FileInputFormat.addInputPath(job2, new Path(args[1]));
+        FileOutputFormat.setOutputPath(job2, new Path(args[2]));
+        fileSystem.delete(new Path(args[2]), true);
+        boolean result = job2.waitForCompletion(true);
+
         System.exit(result?0:1);
     }
 }
